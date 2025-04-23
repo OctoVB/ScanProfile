@@ -350,6 +350,9 @@ namespace ScanProfile
 
         private void LoadLettersAsync(string yearPath, CancellationToken cancellationToken)
         {
+            // Очищаем список перед загрузкой
+            Invoke(new Action(() => listCases.Items.Clear()));
+
             var directories = Directory.GetDirectories(yearPath);
             int total = directories.Length;
             int processed = 0;
@@ -408,6 +411,9 @@ namespace ScanProfile
 
         private void LoadCasesAsync(string letterPath, CancellationToken cancellationToken)
         {
+            // Очищаем список перед загрузкой
+            Invoke(new Action(() => listCases.Items.Clear()));
+
             var directories = Directory.GetDirectories(letterPath);
             int total = directories.Length;
             int processed = 0;
@@ -952,33 +958,39 @@ namespace ScanProfile
                     Directory.CreateDirectory(letterPath);
                     Directory.CreateDirectory(caseFolder);
 
-                    // Выбираем год
-                    var yearNode = treeYears.Nodes.Cast<TreeNode>()
-                        .FirstOrDefault(node => node.Tag.ToString() == yearPath);
-                    if (yearNode != null)
+                    // Принудительно обновляем списки
+                    await InvokeAsync(() =>
                     {
-                        treeYears.SelectedNode = yearNode;
-                        await Task.Delay(100); // Ждем, пока загрузятся буквы
-                    }
+                        // Снимаем и возвращаем выделение буквы для перезагрузки дел
+                        if (listLetters.SelectedItems.Count > 0)
+                        {
+                            var letterItem = listLetters.SelectedItems[0];
+                            letterItem.Selected = false;
+                            letterItem.Selected = true;
+                        }
+                    });
 
-                    // Выбираем букву
-                    var letterItem = listLetters.Items.Cast<ListViewItem>()
-                        .FirstOrDefault(item => item.Tag.ToString() == letterPath);
-                    if (letterItem != null)
-                    {
-                        letterItem.Selected = true;
-                        letterItem.Focused = true;
-                        await Task.Delay(100); // Ждем, пока загрузятся дела
-                    }
+                    // Ждем завершения загрузки дел
+                    await WaitForListCasesLoad();
 
-                    // Выбираем дело
+                    // Ищем созданное дело с нормализацией путей
                     var caseItem = listCases.Items.Cast<ListViewItem>()
-                        .FirstOrDefault(item => item.Tag.ToString() == caseFolder);
+                        .FirstOrDefault(item =>
+                            Path.GetFullPath(item.Tag.ToString()).Equals(
+                                Path.GetFullPath(caseFolder),
+                                StringComparison.OrdinalIgnoreCase
+                            ));
+
                     if (caseItem != null)
                     {
-                        caseItem.Selected = true;
-                        caseItem.Focused = true;
-                        ListCases_SelectedIndexChanged(null, EventArgs.Empty);
+                        await InvokeAsync(() =>
+                        {
+                            caseItem.Selected = true;
+                            caseItem.Focused = true;
+                            listCases.EnsureVisible(caseItem.Index);
+                            listCases.Focus();
+                            ListCases_SelectedIndexChanged(null, EventArgs.Empty);
+                        });
                     }
                     UpdateStatus($"Создано новое дело: №{caseNumber:D3} {txtFIO.Text.Trim()} в папке {caseFolder}");
                     LogAction($"Создано новое дело: №{caseNumber:D3} {txtFIO.Text.Trim()} в папке {caseFolder}");
@@ -988,6 +1000,39 @@ namespace ScanProfile
                     MessageBox.Show($"Ошибка: {ex.Message}");
                 }
             }
+        }
+        private async Task InvokeAsync(Action action)
+        {
+            try
+            {
+                if (IsDisposed || Disposing) return;
+
+                if (InvokeRequired)
+                    await Task.Run(() => Invoke(action));
+                else
+                    action();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Игнорируем ошибки при закрытии формы
+            }
+        }
+
+        private async Task WaitForListCasesLoad()
+        {
+            while (true)
+            {
+                await Task.Delay(50);
+                if (!IsCasesLoading()) break;
+            }
+        }
+
+        private bool IsCasesLoading()
+        {
+            // Проверяем, идет ли загрузка дел
+            return listCases.Items.Cast<ListViewItem>()
+                       .Any(item => item.Text == "Loading...") ||
+                   flowLayoutPanel1.Controls.Count == 0;
         }
 
         private async void btnNewListProfile_Click(object sender, EventArgs e)
