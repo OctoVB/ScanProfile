@@ -49,6 +49,8 @@
             this.rtbLog = new System.Windows.Forms.RichTextBox();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.panel3 = new System.Windows.Forms.Panel();
+            this.label5 = new System.Windows.Forms.Label();
+            this.tbIP = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.btnUpdate = new System.Windows.Forms.Button();
@@ -216,6 +218,8 @@
             // 
             // panel3
             // 
+            this.panel3.Controls.Add(this.label5);
+            this.panel3.Controls.Add(this.tbIP);
             this.panel3.Controls.Add(this.label1);
             this.panel3.Controls.Add(this.label3);
             this.panel3.Controls.Add(this.btnUpdate);
@@ -229,6 +233,17 @@
             this.panel3.Controls.Add(this.cbPepperType);
             resources.ApplyResources(this.panel3, "panel3");
             this.panel3.Name = "panel3";
+            // 
+            // label5
+            // 
+            resources.ApplyResources(this.label5, "label5");
+            this.label5.Name = "label5";
+            // 
+            // tbIP
+            // 
+            this.tbIP.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            resources.ApplyResources(this.tbIP, "tbIP");
+            this.tbIP.Name = "tbIP";
             // 
             // label1
             // 
@@ -393,6 +408,8 @@
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.Button btSearch;
         private System.Windows.Forms.TextBox tbSearch;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.TextBox tbIP;
     }
 }
 

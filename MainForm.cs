@@ -52,6 +52,9 @@ namespace ScanProfile
             LoadComboBoxSettings(cbDPI, Properties.Settings.Default.DPI);
             LoadScanners();
             //MainTab.ItemSize = new System.Drawing.Size(200, 200);
+            // Добавляем ToolTip для кнопки обновления сканеров
+            var toolTip = new ToolTip();
+            toolTip.SetToolTip(btnUpdate, "Обновить список всех доступных сканеров (USB и сетевых)");
         }
 
         private void LoadComboBoxSettings(ComboBox comboBox, string savedValue)
@@ -836,28 +839,67 @@ namespace ScanProfile
             try
             {
                 var deviceManager = new DeviceManager();
+
+                // Добавляем обработку для всех доступных сканеров (USB и сетевых)
                 foreach (DeviceInfo device in deviceManager.DeviceInfos)
                 {
                     if (device.Type == WiaDeviceType.ScannerDeviceType)
                     {
-                        cbDriver.Items.Add(device.Properties["Name"].get_Value());
+                        string deviceName = device.Properties["Name"].get_Value().ToString();
+                        string deviceID = device.DeviceID;                        
+                        cbDriver.Items.Add(deviceName);
                     }
                 }
 
                 if (cbDriver.Items.Count == 0)
+                {
                     cbDriver.Items.Add("Сканеры не найдены");
+                    MessageBox.Show("Не найдено ни одного сканера (USB или сетевого). Проверьте подключение.");
+                }
 
                 cbDriver.SelectedIndex = 0;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка WIA: {ex.Message}");
+                MessageBox.Show($"Ошибка WIA: {ex.Message}\n\nПопробуйте следующее:\n1. Проверьте, что сканер включен и подключен\n2. Для сетевых сканеров проверьте сетевое подключение\n3. Установите драйверы для сканера",
+                                "Ошибка подключения",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Error);
             }
+        }
+
+        // Проверка, является ли сканер сетевым
+        private bool IsNetworkScanner(string deviceID)
+        {
+            // Сетевые сканеры обычно имеют определенные идентификаторы
+            return deviceID.Contains("\\") || // Например: "192.168.1.100\scanner"
+                   deviceID.StartsWith("http", StringComparison.OrdinalIgnoreCase) ||
+                   deviceID.StartsWith("wsd", StringComparison.OrdinalIgnoreCase); // WSD (Web Services for Devices)
         }
 
         private void btnUpdate_Click(object sender, EventArgs e)
         {
-            LoadScanners();
+            try
+            {
+                UpdateStatus("Поиск сканеров...");
+                LoadScanners();
+
+                if (cbDriver.Items.Count > 0 && !cbDriver.Items[0].ToString().Contains("не найдены"))
+                {
+                    UpdateStatus($"Найдено {cbDriver.Items.Count} сканеров (USB и сетевых)");
+                    LogAction($"Обновлен список сканеров. Найдено устройств: {cbDriver.Items.Count}");
+                }
+                else
+                {
+                    UpdateStatus("Сканеры не найдены");
+                    LogAction("Сканеры не найдены при обновлении списка");
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Ошибка при обновлении списка сканеров: {ex.Message}");
+                LogAction($"Ошибка при обновлении списка сканеров: {ex.Message}");
+            }
         }
 
         private async void btnNewProfile_Click(object sender, EventArgs e)
