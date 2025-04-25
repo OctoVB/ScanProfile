@@ -985,11 +985,10 @@ namespace ScanProfile
                 // Обновляем UI
                 await this.InvokeIfRequiredAsync(async () =>
                 {
-                    // Проверяем, существует ли буква в списке
+                    // 1. Обновляем список букв
                     var existingLetter = listLetters.Items.Cast<ListViewItem>().FirstOrDefault(item => item.Text == letter);
                     if (existingLetter == null)
                     {
-                        // Добавляем новую букву в список
                         listLetters.Items.Add(new ListViewItem(letter)
                         {
                             ImageKey = "Letter",
@@ -997,33 +996,25 @@ namespace ScanProfile
                         });
                     }
 
-                    // Если текущая буква совпадает с буквой нового дела, обновляем список дел
-                    var currentLetterItem = listLetters.SelectedItems.Cast<ListViewItem>().FirstOrDefault();
-                    if (currentLetterItem != null && currentLetterItem.Text == letter)
+                    // 2. Выбираем нужную букву
+                    foreach (ListViewItem letterItem in listLetters.Items)
                     {
-                        ListLetters_SelectedIndexChanged(listLetters, EventArgs.Empty);
-                    }
-                    else
-                    {
-                        // Если буква другая, выбираем нужную букву
-                        foreach (ListViewItem letterItem in listLetters.Items)
+                        if (letterItem.Text == letter)
                         {
-                            if (letterItem.Text == letter)
-                            {
-                                listLetters.SelectedItems.Clear();
-                                letterItem.Selected = true;
-                                ListLetters_SelectedIndexChanged(listLetters, EventArgs.Empty);
-                                break;
-                            }
+                            listLetters.SelectedItems.Clear();
+                            letterItem.Selected = true;
+                            letterItem.Focused = true;
+                            listLetters.EnsureVisible(letterItem.Index);
+                            break;
                         }
                     }
 
-                    // Ждем, пока список дел загрузится
-                    await WaitForListCasesLoad();
+                    // 3. Ждем обновления списка дел
+                    await Task.Delay(100); // Даем время на обработку события SelectedIndexChanged
 
-                    // Находим и выбираем созданное дело по тексту
+                    // 4. Находим и выбираем созданное дело
                     var newCaseItem = listCases.Items.Cast<ListViewItem>()
-                        .FirstOrDefault(item => item.Text.Equals($"№{caseNumber:D3} {txtFIO.Text.Trim()}", StringComparison.OrdinalIgnoreCase));
+                        .FirstOrDefault(item => item.Tag.ToString().Equals(caseFolder, StringComparison.OrdinalIgnoreCase));
 
                     if (newCaseItem != null)
                     {
@@ -1031,9 +1022,7 @@ namespace ScanProfile
                         newCaseItem.Selected = true;
                         newCaseItem.Focused = true;
                         listCases.EnsureVisible(newCaseItem.Index);
-
-                        // Явно вызываем событие SelectedIndexChanged
-                        ListCases_SelectedIndexChanged(listCases, EventArgs.Empty);
+                        listCases.Focus();
                     }
                     else
                     {
