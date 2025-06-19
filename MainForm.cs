@@ -17,6 +17,7 @@ namespace ScanProfile
         private bool _isResizing = false;
         private Size _lastClientSize;
         private bool _isLoadingYears = false;
+        private string _casePathToSelect = null;
 
         public MainForm()
         {
@@ -402,6 +403,26 @@ namespace ScanProfile
             finally
             {
                 _cancellationTokenSource = null;
+            }
+            if (_casePathToSelect != null)
+            {
+                await Task.Delay(300); // Даем время на загрузку дел
+
+                this.InvokeIfRequired(() =>
+                {
+                    foreach (ListViewItem item in listCases.Items)
+                    {
+                        if (item.Tag.ToString() == _casePathToSelect)
+                        {
+                            listCases.SelectedItems.Clear();
+                            item.Selected = true;
+                            item.Focused = true;
+                            listCases.EnsureVisible(item.Index);
+                            _casePathToSelect = null;
+                            break;
+                        }
+                    }
+                });
             }
         }
 
@@ -979,6 +1000,12 @@ namespace ScanProfile
                 var letterPath = Path.Combine(yearPath, letter);
                 var caseFolder = Path.Combine(letterPath, $"№{caseNumber:D3} {txtFIO.Text.Trim()}");
 
+                if (Directory.Exists(caseFolder))
+                {
+                    ShowError("Дело с таким номером и ФИО уже существует.");
+                    return;
+                }
+
                 Directory.CreateDirectory(letterPath);
                 Directory.CreateDirectory(caseFolder);
 
@@ -1103,6 +1130,7 @@ namespace ScanProfile
                 ((IProgress<int>)_progress).Report(0);
                 UpdateStatus($"Ошибка сканирования дела: {ex.Message}");
                 LogAction($"Ошибка сканирования дела: {ex.Message}");
+                ShowInfo("Пожалуйста, выберите дело для сканирования.", "Сканирование дела");
             }
             finally
             {
@@ -1271,34 +1299,6 @@ namespace ScanProfile
             });
         }
 
-        private void btSearch_Click(object sender, EventArgs e)
-        {
-            string searchText = tbSearch.Text.Trim();
-
-            if (string.IsNullOrEmpty(searchText))
-            {
-                ShowInfo("Введите текст для поиска.", "Поиск");
-                return;
-            }
-
-            ClearSearchSelection();
-
-            if (!Directory.Exists(txtPath.Text))
-            {
-                ShowError("Указанный путь не существует.", "Ошибка");
-                return;
-            }
-
-            var searchResult = SearchCaseInFileSystem(searchText);
-            if (searchResult.casePath == null && searchResult.letterPath == null && searchResult.yearPath == null)
-            {
-                ShowInfo("Ничего не найдено.", "Поиск");
-                return;
-            }
-
-            DisplaySearchResult(searchResult);
-        }
-
         private void ClearSearchSelection()
         {
             treeYears.SelectedNode = null;
@@ -1378,6 +1378,106 @@ namespace ScanProfile
             {
                 ShowInfo("Нет активной операции для отмены.", "Отмена");
             }
+        }
+
+        private void btnChange_Click(object sender, EventArgs e)
+        {
+            if (listCases.SelectedItems.Count == 0)
+            {
+                ShowInfo("Выберите дело для изменения.");
+                return;
+            }
+
+            ListViewItem selectedCaseItem = listCases.SelectedItems[0];
+            string oldCasePath = selectedCaseItem.Tag.ToString();
+            string oldCaseName = selectedCaseItem.Text;
+
+            using (Form editForm = new Form())
+            {
+                editForm.Text = "Изменение дела";
+                editForm.Size = new Size(400, 200);
+                editForm.FormBorderStyle = FormBorderStyle.FixedDialog;
+                editForm.StartPosition = FormStartPosition.CenterParent;
+
+                Label lblNumber = new Label() { Text = "Номер дела:", Location = new Point(20, 20), AutoSize = true };
+                TextBox txtNumber = new TextBox() { Location = new Point(150, 15), Width = 200 };
+                txtNumber.Text = oldCaseName.Split(' ')[0].Replace("№", "");
+
+                Label lblFIO = new Label() { Text = "ФИО:", Location = new Point(20, 60), AutoSize = true };
+                TextBox txtFIO = new TextBox() { Location = new Point(150, 55), Width = 200 };
+                txtFIO.Text = string.Join(" ", oldCaseName.Split(' ').Skip(1));
+
+                Button btnOk = new Button() { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(180, 100) };
+                Button btnCancel = new Button() { Text = "Отмена", DialogResult = DialogResult.Cancel, Location = new Point(260, 100) };
+
+                editForm.Controls.AddRange(new Control[] { lblNumber, txtNumber, lblFIO, txtFIO, btnOk, btnCancel });
+
+                if (editForm.ShowDialog() == DialogResult.OK)
+                {
+                    if (!int.TryParse(txtNumber.Text.Trim(), out int newNumber))
+                    {
+                        ShowError("Номер дела должен быть числом.");
+                        return;
+                    }
+
+                    string newFIO = txtFIO.Text.Trim();
+                    if (string.IsNullOrWhiteSpace(newFIO))
+                    {
+                        ShowError("ФИО не может быть пустым.");
+                        return;
+                    }
+
+                    string newCaseName = $"№{newNumber:D3} {newFIO}";
+                    string newLetter = GetFirstLetterFromCaseName(newFIO);
+                    string yearPath = Path.GetDirectoryName(Path.GetDirectoryName(oldCasePath));
+                    string newCasePath = Path.Combine(yearPath, newLetter, newCaseName);
+
+                    if (Directory.Exists(newCasePath))
+                    {
+                        ShowError("Дело с таким номером и ФИО уже существует.");
+                        return;
+                    }
+
+                    try
+                    {
+                        Directory.CreateDirectory(Path.Combine(yearPath, newLetter));
+                        Directory.Move(oldCasePath, newCasePath);
+
+                        selectedCaseItem.Text = newCaseName;
+                        selectedCaseItem.Tag = newCasePath;
+                        selectedCaseItem.Selected = true;
+
+                        _casePathToSelect = newCasePath;
+                        listLetters.SelectedItems.Clear();
+                        var newLetterItem = listLetters.Items.Cast<ListViewItem>().FirstOrDefault(x => x.Text == newLetter);
+                        if (newLetterItem != null)
+                        {
+                            newLetterItem.Selected = true;
+                            newLetterItem.Focused = true;
+                            listLetters.EnsureVisible(newLetterItem.Index);
+                        }
+
+                        ShowInfo("Дело успешно изменено.");
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowError($"Ошибка при изменении дела: {ex.Message}");
+                    }
+                }
+            }
+        }
+        // Вспомогательный метод для определения первой буквы фамилии
+        private string GetFirstLetterFromCaseName(string caseName)
+        {
+            caseName = caseName.Trim();
+            if (string.IsNullOrEmpty(caseName)) return "?";
+
+            // Берем первое слово (фамилию)
+            string firstName = caseName.Split(' ')[0];
+            if (firstName.Length == 0) return "?";
+
+            // Возвращаем первую букву в верхнем регистре
+            return firstName[0].ToString().ToUpper();
         }
     }
 

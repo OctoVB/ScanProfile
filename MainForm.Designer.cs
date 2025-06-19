@@ -37,12 +37,10 @@
             this.listLetters = new System.Windows.Forms.ListView();
             this.treeYears = new System.Windows.Forms.TreeView();
             this.panel1 = new System.Windows.Forms.Panel();
-            this.btSearch = new System.Windows.Forms.Button();
-            this.iconSet = new System.Windows.Forms.ImageList(this.components);
-            this.tbSearch = new System.Windows.Forms.TextBox();
             this.panel2 = new System.Windows.Forms.Panel();
             this.btnCancel = new System.Windows.Forms.Button();
             this.btnDelProfile = new System.Windows.Forms.Button();
+            this.btnChange = new System.Windows.Forms.Button();
             this.btnNewListProfile = new System.Windows.Forms.Button();
             this.btnNewProfile = new System.Windows.Forms.Button();
             this.Settings = new System.Windows.Forms.TabPage();
@@ -53,6 +51,7 @@
             this.label1 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.btnUpdate = new System.Windows.Forms.Button();
+            this.iconSet = new System.Windows.Forms.ImageList(this.components);
             this.cbDPI = new System.Windows.Forms.ComboBox();
             this.txtPath = new System.Windows.Forms.TextBox();
             this.btnCreate = new System.Windows.Forms.Button();
@@ -123,38 +122,15 @@
             // 
             // panel1
             // 
-            this.panel1.Controls.Add(this.btSearch);
-            this.panel1.Controls.Add(this.tbSearch);
             this.panel1.Controls.Add(this.panel2);
             resources.ApplyResources(this.panel1, "panel1");
             this.panel1.Name = "panel1";
-            // 
-            // btSearch
-            // 
-            resources.ApplyResources(this.btSearch, "btSearch");
-            this.btSearch.ImageList = this.iconSet;
-            this.btSearch.Name = "btSearch";
-            this.btSearch.UseVisualStyleBackColor = true;
-            this.btSearch.Click += new System.EventHandler(this.btSearch_Click);
-            // 
-            // iconSet
-            // 
-            this.iconSet.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("iconSet.ImageStream")));
-            this.iconSet.TransparentColor = System.Drawing.Color.Transparent;
-            this.iconSet.Images.SetKeyName(0, "Dot");
-            this.iconSet.Images.SetKeyName(1, "Delete");
-            this.iconSet.Images.SetKeyName(2, "Scaner");
-            this.iconSet.Images.SetKeyName(3, "Update");
-            // 
-            // tbSearch
-            // 
-            resources.ApplyResources(this.tbSearch, "tbSearch");
-            this.tbSearch.Name = "tbSearch";
             // 
             // panel2
             // 
             this.panel2.Controls.Add(this.btnCancel);
             this.panel2.Controls.Add(this.btnDelProfile);
+            this.panel2.Controls.Add(this.btnChange);
             this.panel2.Controls.Add(this.btnNewListProfile);
             this.panel2.Controls.Add(this.btnNewProfile);
             resources.ApplyResources(this.panel2, "panel2");
@@ -178,6 +154,16 @@
             this.toolTip1.SetToolTip(this.btnDelProfile, resources.GetString("btnDelProfile.ToolTip"));
             this.btnDelProfile.UseVisualStyleBackColor = false;
             this.btnDelProfile.Click += new System.EventHandler(this.btnDelProfile_Click);
+            // 
+            // btnChange
+            // 
+            this.btnChange.BackColor = System.Drawing.Color.RoyalBlue;
+            resources.ApplyResources(this.btnChange, "btnChange");
+            this.btnChange.ForeColor = System.Drawing.SystemColors.ButtonFace;
+            this.btnChange.Name = "btnChange";
+            this.toolTip1.SetToolTip(this.btnChange, resources.GetString("btnChange.ToolTip"));
+            this.btnChange.UseVisualStyleBackColor = false;
+            this.btnChange.Click += new System.EventHandler(this.btnChange_Click);
             // 
             // btnNewListProfile
             // 
@@ -258,6 +244,15 @@
             this.btnUpdate.Name = "btnUpdate";
             this.btnUpdate.UseVisualStyleBackColor = true;
             this.btnUpdate.Click += new System.EventHandler(this.btnUpdate_Click);
+            // 
+            // iconSet
+            // 
+            this.iconSet.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("iconSet.ImageStream")));
+            this.iconSet.TransparentColor = System.Drawing.Color.Transparent;
+            this.iconSet.Images.SetKeyName(0, "Dot");
+            this.iconSet.Images.SetKeyName(1, "Delete");
+            this.iconSet.Images.SetKeyName(2, "Scaner");
+            this.iconSet.Images.SetKeyName(3, "Update");
             // 
             // cbDPI
             // 
@@ -356,7 +351,6 @@
             this.MainTab.ResumeLayout(false);
             this.MainMenu.ResumeLayout(false);
             this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
             this.panel2.ResumeLayout(false);
             this.Settings.ResumeLayout(false);
             this.panel4.ResumeLayout(false);
@@ -401,9 +395,8 @@
         private System.Windows.Forms.ToolTip toolTip1;
         private System.Windows.Forms.RichTextBox rtbLog;
         private System.Windows.Forms.TextBox textBox1;
-        private System.Windows.Forms.Button btSearch;
-        private System.Windows.Forms.TextBox tbSearch;
         private System.Windows.Forms.Button btnCancel;
+        private System.Windows.Forms.Button btnChange;
     }
 }
 
